@@ -58,16 +58,16 @@ namespace SolarWatch5.Services
             {
                 SunsetSunriseData localSolarData = new SunsetSunriseData()
                 {
-                    Date = day,
+                    Date = day.ToDateTime(TimeOnly.Parse("10:00 PM")),
                     Sunrise = sunsetSunriseData.Sunrise.AddHours(2),
                     Sunset = sunsetSunriseData.Sunset.AddHours(2),
                 };
 
-                city.SolarData = localSolarData;
+                city.SunsetSunriseDataList.Add(localSolarData);
             }
             else
             {
-                city.SolarData = sunsetSunriseData;
+                city.SunsetSunriseDataList.Add(sunsetSunriseData);
             }
 
             return city;

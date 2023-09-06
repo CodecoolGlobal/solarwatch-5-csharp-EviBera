@@ -39,9 +39,9 @@ namespace SolarWatch5.Services
 
             SunsetSunriseData sunsetSunriseData = new SunsetSunriseData
             {
-                Date = when,
-                Sunrise = TimeOnly.Parse(sunrise),
-                Sunset = TimeOnly.Parse(sunset)
+                Date = when.ToDateTime(TimeOnly.Parse("10:00 PM")),
+                Sunrise = when.ToDateTime(TimeOnly.Parse(sunrise)),
+                Sunset = when.ToDateTime(TimeOnly.Parse(sunset))
             };
 
             return sunsetSunriseData;

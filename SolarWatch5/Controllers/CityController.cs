@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SolarWatch5.Models;
 using SolarWatch5.Services;
+using SolarWatch5.Services.Repository;
 using System.ComponentModel.DataAnnotations;
 
 namespace SolarWatch5.Controllers
@@ -11,12 +12,14 @@ namespace SolarWatch5.Controllers
     {
         private readonly ILogger<CityController> _logger;
         private readonly ICityService _cityService;
+        private readonly ICityRepository _cityRepository;
 
 
-        public CityController(ILogger<CityController> logger, ICityService cityService)
+        public CityController(ILogger<CityController> logger, ICityService cityService, ICityRepository cityRepository)
         {
             _logger = logger;
             _cityService = cityService;
+            _cityRepository = cityRepository;
         }
 
         [HttpGet("GetAsync")]
@@ -24,7 +27,21 @@ namespace SolarWatch5.Controllers
         {
             try
             {
-                var city = await _cityService.GetCityAsync(cityName, day);
+                var city = await _cityRepository.GetCityAsync(cityName, day);
+
+                if (city == null)
+                {
+                    var newCity = await _cityService.GetCityAsync(cityName, day);
+                    await _cityRepository.AddCityAsync(newCity);
+
+                    if (newCity == null)
+                    {
+                        return NotFound($"City '{cityName}' not found in the database.");
+                    }
+
+                    return Ok(newCity);
+                }
+
                 return Ok(city);
             }
 

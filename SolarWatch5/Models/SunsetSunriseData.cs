@@ -2,8 +2,16 @@
 {
     public class SunsetSunriseData
     {
-        public DateOnly Date { get; set; }
-        public TimeOnly Sunrise { get; set; }
-        public TimeOnly Sunset { get; set; }
+        public int Id { get; set; }
+        public DateTime Date { get; set; }
+        public DateTime Sunrise { get; set; }
+        public DateTime Sunset { get; set; }
+
+
+        // Foreign key to link with City
+        public int CityId { get; set; }
+
+        // Navigation property for City
+        public City City { get; set; }
     }
 }
