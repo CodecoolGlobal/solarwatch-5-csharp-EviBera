@@ -12,37 +12,60 @@ namespace SolarWatch5.Controllers
     {
         private readonly ILogger<CityController> _logger;
         private readonly ICityService _cityService;
+        private readonly IJsonProcessor _jsonProcessor;
         private readonly ICityRepository _cityRepository;
 
 
-        public CityController(ILogger<CityController> logger, ICityService cityService, ICityRepository cityRepository)
+        public CityController(ILogger<CityController> logger, ICityService cityService, IJsonProcessor jsonProcessor, 
+            ICityRepository cityRepository)
         {
             _logger = logger;
             _cityService = cityService;
+            _jsonProcessor = jsonProcessor;
             _cityRepository = cityRepository;
         }
 
         [HttpGet("GetAsync")]
         public async Task<ActionResult<City>> GetAsync(string cityName, [Required] DateOnly day)
         {
-            try
+            var city = _cityRepository.GetByName(cityName);
+
+            if (city == null)
             {
-                var city = await _cityRepository.GetCityAsync(cityName, day);
+                var newCityData = _cityService.GetCoordinatesAsync(cityName);
+                city = _jsonProcessor.ProcessJsonCityData(await newCityData);
 
                 if (city == null)
                 {
-                    var newCity = await _cityService.GetCityAsync(cityName, day);
-                    await _cityRepository.AddCityAsync(newCity);
-
-                    if (newCity == null)
-                    {
-                        return NotFound($"City '{cityName}' not found in the database.");
-                    }
-
-                    return Ok(newCity);
+                    return NotFound($"City {cityName} not found");
                 }
 
+                _cityRepository.Add(city);
+
+            }
+
+            try
+            {
+
+                var solarDataString = await _cityService.GetSolarDataAsync(day, city);
+
+                if (solarDataString == null)
+                {
+                    // Handle the case where solarDataString is null, possibly an error in the service.
+                    return NotFound($"Solar data not available for {cityName} on {day}");
+                }
+
+                var solarData = _jsonProcessor.ProcessJsonSolarData(solarDataString, day);
+
+                if (city.SunsetSunriseDataList == null)
+                {
+                    city.SunsetSunriseDataList = new List<SunsetSunriseData>(); 
+                }
+
+                city.SunsetSunriseDataList.Add(solarData);
+
                 return Ok(city);
+
             }
 
             catch (Exception ex)

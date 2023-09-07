@@ -6,34 +6,25 @@ namespace SolarWatch5.Services.Repository
 {
     public class CityRepository : ICityRepository
     {
-        private readonly SolarWatchContext _dbContext;
-
-        public CityRepository(SolarWatchContext dbContext)
+        
+        public void Add(City city)
         {
-            _dbContext = dbContext;
+            using var dbContext = new SolarWatchContext();
+            dbContext.Add<City>(city);
+            dbContext.SaveChanges();
         }
 
-        public async Task AddCityAsync(City city)
+        public IEnumerable<City> GetAll()
         {
-            _dbContext.Cities.Add(city);
-            await _dbContext.SaveChangesAsync();
+            using var dbContext = new SolarWatchContext();
+            return dbContext.Cities.ToList();
         }
 
-        public async Task<bool> CityExistsAsync(string cityName)
+        public City? GetByName(string name)
         {
-            return await _dbContext.Cities
-            .AnyAsync(c => c.CityName == cityName);
+            using var dbContext = new SolarWatchContext();
+            return dbContext.Cities.FirstOrDefault(c => c.CityName  == name);
         }
 
-        public async Task<City> GetCityAsync(string cityName, DateOnly day)
-        {
-            // Check if the city exists in the database
-            var city = await _dbContext.Cities
-                .Include(c => c.SunsetSunriseDataList)
-                .Where(c => c.CityName == cityName)
-                .FirstOrDefaultAsync();
-
-            return city;
-        }
     }
 }
