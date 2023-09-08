@@ -17,7 +17,7 @@ namespace SolarWatch5.Controllers
         private readonly ISolarDataRepository _sunsetSunriseDataRepository;
 
 
-        public CityController(ILogger<CityController> logger, ICityService cityService, IJsonProcessor jsonProcessor, 
+        public CityController(ILogger<CityController> logger, ICityService cityService, IJsonProcessor jsonProcessor,
             ICityRepository cityRepository, ISolarDataRepository sunsetSunriseDataRepository)
         {
             _logger = logger;
@@ -32,46 +32,29 @@ namespace SolarWatch5.Controllers
         {
             try
             {
-                var city = await _cityRepository.GetByNameAsync(cityName);
+                var city = await FindACityAsync(cityName);
 
                 if (city == null)
                 {
-                    var newCityData = _cityService.GetCoordinatesAsync(cityName);
-                    city = _jsonProcessor.ProcessJsonCityData(await newCityData);
-
-                    if (city == null)
-                    {
-                        return NotFound($"City {cityName} not found");
-                    }
-
-                    _cityRepository.AddAsync(city);
-
+                    return NotFound($"City {cityName} not found");
                 }
 
-                var solarData = await _sunsetSunriseDataRepository.GetByDateAndCityAsync(day, city.Id);
+
+                var solarData = await FindSunsetSunriseDataAsync(city, day);
 
                 if (solarData == null)
                 {
-                    var solarDataString = await _cityService.GetSolarDataAsync(day, city);
-
-                    if (solarDataString == null)
-                    {
-                        // Handle the case where solarDataString is null, possibly an error in the service.
-                        return NotFound($"Solar data not available for {cityName} on {day}");
-                    }
-
-                    solarData = _jsonProcessor.ProcessJsonSolarData(solarDataString, day);
-                    solarData.CityId = city.Id;
-                    _sunsetSunriseDataRepository.AddSolarDataAsync(solarData);
+                    return NotFound($"Solar data not available for {cityName} on {day}");
                 }
 
 
                 if (city.SunsetSunriseDataList == null)
                 {
-                    city.SunsetSunriseDataList = new List<SunsetSunriseData>(); 
+                    city.SunsetSunriseDataList = new List<SunsetSunriseData>();
                 }
 
                 city.SunsetSunriseDataList.Add(solarData);
+
 
                 var combinedData = new CityWithSolarData()
                 {
@@ -88,6 +71,45 @@ namespace SolarWatch5.Controllers
                 _logger.LogError(ex, $"Error getting solar data, {ex.Message}");
                 return NotFound($"Error getting solar data, {ex.Message}");
             }
+        }
+
+        private async Task<City> FindACityAsync(string cityName)
+        {
+            var city = await _cityRepository.GetByNameAsync(cityName);
+
+            if (city == null)
+            {
+                var newCityData = await _cityService.GetCoordinatesAsync(cityName);
+                city = _jsonProcessor.ProcessJsonCityData(newCityData);
+
+                if (city != null)
+                {
+                    _cityRepository.AddAsync(city);
+                }
+
+            }
+
+            return city;
+        }
+
+        private async Task<SunsetSunriseData> FindSunsetSunriseDataAsync(City city, DateOnly day)
+        { 
+            var solarData = await _sunsetSunriseDataRepository.GetByDateAndCityAsync(day, city.Id);
+
+            if (solarData == null)
+            {
+                var solarDataString = await _cityService.GetSolarDataAsync(day, city);
+
+                if (solarDataString != null)
+                {
+                    solarData = _jsonProcessor.ProcessJsonSolarData(solarDataString, day);
+                    solarData.CityId = city.Id;
+                    _sunsetSunriseDataRepository.AddSolarDataAsync(solarData);
+                }
+
+            }
+
+            return solarData;
         }
 
     }
