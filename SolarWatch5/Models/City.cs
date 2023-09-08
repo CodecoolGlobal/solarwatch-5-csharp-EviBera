@@ -1,4 +1,6 @@
-﻿namespace SolarWatch5.Models
+﻿using System.Text.Json.Serialization;
+
+namespace SolarWatch5.Models
 {
     public class City
     {
@@ -11,6 +13,7 @@
 
 
         // Navigation property for SunsetSunriseData
+        [JsonIgnore]
         public ICollection<SunsetSunriseData> SunsetSunriseDataList { get; set; }
     }
 }

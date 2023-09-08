@@ -15,6 +15,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<ICityService, CityService>();
 builder.Services.AddSingleton<IJsonProcessor, JsonProcessor>();
 builder.Services.AddScoped<ICityRepository, CityRepository>();
+builder.Services.AddScoped<ISolarDataRepository, SunsetSunriseDataRepository>();
 builder.Services.AddDbContext<SolarWatchContext>();
 
 var app = builder.Build();

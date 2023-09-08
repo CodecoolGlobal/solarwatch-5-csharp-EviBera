@@ -14,48 +14,57 @@ namespace SolarWatch5.Controllers
         private readonly ICityService _cityService;
         private readonly IJsonProcessor _jsonProcessor;
         private readonly ICityRepository _cityRepository;
+        private readonly ISolarDataRepository _sunsetSunriseDataRepository;
 
 
         public CityController(ILogger<CityController> logger, ICityService cityService, IJsonProcessor jsonProcessor, 
-            ICityRepository cityRepository)
+            ICityRepository cityRepository, ISolarDataRepository sunsetSunriseDataRepository)
         {
             _logger = logger;
             _cityService = cityService;
             _jsonProcessor = jsonProcessor;
             _cityRepository = cityRepository;
+            _sunsetSunriseDataRepository = sunsetSunriseDataRepository;
         }
 
         [HttpGet("GetAsync")]
-        public async Task<ActionResult<City>> GetAsync(string cityName, [Required] DateOnly day)
+        public async Task<ActionResult<CityWithSolarData>> GetAsync(string cityName, [Required] DateOnly day)
         {
-            var city = _cityRepository.GetByName(cityName);
-
-            if (city == null)
+            try
             {
-                var newCityData = _cityService.GetCoordinatesAsync(cityName);
-                city = _jsonProcessor.ProcessJsonCityData(await newCityData);
+                var city = await _cityRepository.GetByNameAsync(cityName);
 
                 if (city == null)
                 {
-                    return NotFound($"City {cityName} not found");
+                    var newCityData = _cityService.GetCoordinatesAsync(cityName);
+                    city = _jsonProcessor.ProcessJsonCityData(await newCityData);
+
+                    if (city == null)
+                    {
+                        return NotFound($"City {cityName} not found");
+                    }
+
+                    _cityRepository.Add(city);
+
                 }
 
-                _cityRepository.Add(city);
+                var solarData = await _sunsetSunriseDataRepository.GetByDateAndCityAsync(day, city.Id);
 
-            }
-
-            try
-            {
-
-                var solarDataString = await _cityService.GetSolarDataAsync(day, city);
-
-                if (solarDataString == null)
+                if (solarData == null)
                 {
-                    // Handle the case where solarDataString is null, possibly an error in the service.
-                    return NotFound($"Solar data not available for {cityName} on {day}");
+                    var solarDataString = await _cityService.GetSolarDataAsync(day, city);
+
+                    if (solarDataString == null)
+                    {
+                        // Handle the case where solarDataString is null, possibly an error in the service.
+                        return NotFound($"Solar data not available for {cityName} on {day}");
+                    }
+
+                    solarData = _jsonProcessor.ProcessJsonSolarData(solarDataString, day);
+                    solarData.CityId = city.Id;
+                    _sunsetSunriseDataRepository.AddSolarDataAsync(solarData);
                 }
 
-                var solarData = _jsonProcessor.ProcessJsonSolarData(solarDataString, day);
 
                 if (city.SunsetSunriseDataList == null)
                 {
@@ -64,7 +73,13 @@ namespace SolarWatch5.Controllers
 
                 city.SunsetSunriseDataList.Add(solarData);
 
-                return Ok(city);
+                var combinedData = new CityWithSolarData()
+                {
+                    City = city,
+                    SolarData = solarData
+                };
+
+                return Ok(combinedData);
 
             }
 

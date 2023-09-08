@@ -6,24 +6,28 @@ namespace SolarWatch5.Services.Repository
 {
     public class CityRepository : ICityRepository
     {
-        
+
+        private readonly SolarWatchContext _dbContext;
+
+        public CityRepository(SolarWatchContext dbContext)
+        {
+            _dbContext = dbContext;
+        }
+
         public void Add(City city)
         {
-            using var dbContext = new SolarWatchContext();
-            dbContext.Add<City>(city);
-            dbContext.SaveChanges();
+            _dbContext.Add<City>(city);
+            _dbContext.SaveChanges();
         }
 
         public IEnumerable<City> GetAll()
         {
-            using var dbContext = new SolarWatchContext();
-            return dbContext.Cities.ToList();
+            return _dbContext.Cities.ToList();
         }
 
-        public City? GetByName(string name)
+        public async Task<City?> GetByNameAsync(string name)
         {
-            using var dbContext = new SolarWatchContext();
-            return dbContext.Cities.FirstOrDefault(c => c.CityName  == name);
+            return await _dbContext.Cities.FirstOrDefaultAsync(c => c.CityName  == name);
         }
 
     }
