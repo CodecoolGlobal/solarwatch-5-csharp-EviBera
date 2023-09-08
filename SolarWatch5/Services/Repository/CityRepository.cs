@@ -14,15 +14,16 @@ namespace SolarWatch5.Services.Repository
             _dbContext = dbContext;
         }
 
-        public void Add(City city)
+        public async Task<City> AddAsync(City city)
         {
-            _dbContext.Add<City>(city);
-            _dbContext.SaveChanges();
+            await _dbContext.Cities.AddAsync(city);
+            await _dbContext.SaveChangesAsync();
+            return city;
         }
 
-        public IEnumerable<City> GetAll()
+        public async Task<IEnumerable<City>> GetAllAsync()
         {
-            return _dbContext.Cities.ToList();
+            return await _dbContext.Cities.ToListAsync();
         }
 
         public async Task<City?> GetByNameAsync(string name)

@@ -44,7 +44,7 @@ namespace SolarWatch5.Controllers
                         return NotFound($"City {cityName} not found");
                     }
 
-                    _cityRepository.Add(city);
+                    _cityRepository.AddAsync(city);
 
                 }
 

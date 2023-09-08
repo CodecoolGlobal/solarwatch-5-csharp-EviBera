@@ -4,10 +4,10 @@ namespace SolarWatch5.Services.Repository
 {
     public interface ICityRepository
     {
-        IEnumerable<City> GetAll();
+        Task<IEnumerable<City>> GetAllAsync();
         Task<City?> GetByNameAsync(string name);
 
-        void Add(City city);
+        Task<City> AddAsync(City city);
         
     }
 }
